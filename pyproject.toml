@@ -4,8 +4,8 @@ version = "0.0.0"
 description = "Simulator that visually demostrates gravitational lensing caused by black holes"
 readme = "README.md"
 authors = [
-    { name = "Harrison Pinto", email = "hpintom@unal.edu.co" }
-    { name = "Camilo Contreras", email = "ccontrerasc@unal.edu.co" }
+    { name = "Harrison Pinto", email = "hpintom@unal.edu.co" },
+    { name = "Camilo Contreras", email = "ccontrerasc@unal.edu.co" },
     { name = "Juan Rodriguez", email = "juarodriguezgo@unal.edu.co" }
 ]
 requires-python = ">=3.13"

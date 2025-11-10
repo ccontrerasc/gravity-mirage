@@ -68,7 +68,7 @@ class GravitationalRayTracer:
     def trace_photon_geodesic(self,
                              initial_pos_spherical: tuple[float, float, float],
                              initial_velocity: tuple[float, float, float],
-                             lambda_max: float = 100) -> np.ndarray:
+                             lambda_max: float = 100) -> object:
         """
         Traza un fotón resolviendo ecuaciones geodésicas completas
         (más preciso pero más lento)
@@ -93,17 +93,46 @@ class GravitationalRayTracer:
         # Estado inicial: [t, r, θ, φ, dt/dλ, dr/dλ, dθ/dλ, dφ/dλ]
         state0 = np.array([0, r0, theta0, phi0, dt0, dr0, dtheta0, dphi0])
         
-        # Resolver ecuaciones geodésicas
-        lambda_span = (0, lambda_max)
-        lambda_eval = np.linspace(0, lambda_max, 1000)
-        
+        # Resolver ecuaciones geodésicas.
+        # Use an event to stop integration once the photon returns to a large
+        # radius close to the starting radius (i.e. after passing the
+        # closest-approach and escaping). This avoids requiring an excessively
+        # large fixed lambda_max while still capturing the scattering angle.
+        lambda_span = (0.0, float(lambda_max))
+
+        r0 = initial_pos_spherical[0]
+        # threshold slightly below the start radius to avoid immediately
+        # triggering at t=0
+        threshold = r0 * 0.999
+
+        def escape_event(l, s):
+            # s is the state vector: [t, r, theta, phi, dt/dλ, dr/dλ, dθ/dλ, dφ/dλ]
+            return s[1] - threshold
+
+        # only trigger when r is increasing through the threshold (escaping)
+        escape_event.terminal = True
+        escape_event.direction = 1
+
         solution = solve_ivp(
             lambda l, s: self.bh.geodesic_equations(s, l),
             lambda_span,
             state0,
-            t_eval=lambda_eval,
             method='RK45',
-            rtol=1e-8
+            rtol=1e-8,
+            events=[escape_event],
+            dense_output=True,
         )
-        
+
+        # If the event fired, evaluate the dense solution at the event time so
+        # callers get the final state at escape. Otherwise return the raw
+        # solution (may be truncated if lambda_max was too small).
+        if solution.t_events and len(solution.t_events[0]) > 0:
+            t_event = float(solution.t_events[0][0])
+            y_event = solution.sol(t_event)
+            # Append the event time/state to the existing OdeResult so callers
+            # can access the final state at escape using the usual attributes.
+            solution.t = np.append(solution.t, t_event)
+            solution.y = np.hstack([solution.y, y_event.reshape(-1, 1)])
+            return solution
+
         return solution

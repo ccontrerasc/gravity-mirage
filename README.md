@@ -51,52 +51,84 @@ uv run gravity-mirage
 
 ### Web preview (browser)
 
-The project includes a small development web UI for quickly uploading images
-and previewing gravitational lensing with a black hole placed at the image
-center. Features:
+The repository includes a small development web UI for uploading images and
+previewing gravitational lensing. This UI is implemented with FastAPI and the
+server is served with Uvicorn (not Flask). The app creates an `uploads/`
+directory next to the repository root when needed and uses two rendering
+methods:
 
-- Upload images (stored in an `uploads/` folder created next to the repo root).
-- Delete uploaded images (small ✖ button on each thumbnail).
-- Preview rendering using two methods:
-  - Weak-field: fast per-pixel angular shift using Einstein's weak-field
-    approximation (default).
-  - Geodesic: slower, more accurate coarse numeric geodesic tracing (per-radial
-    bin integration, interpolated across the image). Slower but visually more
-    accurate for stronger lensing.
+- Weak-field: fast per-pixel angular deflection using Einstein's weak-field
+  approximation (interactive preview).
+- Geodesic: slower, more accurate numeric geodesic tracing (coarse radial
+  integration, interpolated across the image).
 
-How to run the web preview locally
+Important requirements
 
-1. Ensure Flask and Pillow are installed (either via `uv sync` or the
-   virtualenv example above).
+- Python 3.13+ (the project's `pyproject.toml` requires >= 3.13).
+- Use a virtual environment for local development (recommended).
 
-2. Start the development server. The app honors the `PORT` environment
-   variable; if not set it defaults to `8000`:
+How to run the web preview locally (recommended)
 
-```sh
-# run on default port 8000
-python3 -m gravity_mirage.web
+1. Create and activate a virtual environment in the project root:
 
-# or set an explicit port
-PORT=5000 python3 -m gravity_mirage.web
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-In your browser open `http://localhost:8000` (or the port you chose).
+Install the package (recommended) which will pull runtime dependencies including FastAPI and Uvicorn
+
+```bash
+uv sync
+```
+
+Start the development server with auto-reload (from an activated venv):
+
+```bash
+# if venv is active
+uvicorn gravity_mirage.web:app
+
+# or explicitly using the venv binary
+.venv/bin/uvicorn gravity_mirage.web:app
+```
+
+In your browser open `http://127.0.0.1:8000` (or the port you chose).
 
 Usage notes
 
-- Click a thumbnail to set it as the active preview image, or select an image
-  from the dropdown in the "Black hole preview" panel.
-- Choose mass (in solar masses) and scale (how many Schwarzschild radii the
-  image radius corresponds to) and pick "Weak-field" or "Geodesic" method.
-- Click "Render preview" to request a generated PNG of the lensed image.
+- Upload images from the left-hand panel; uploaded files are saved into
+  `uploads/` next to the repo root.
+- Click a thumbnail to set it as the active preview image or choose one from
+  the dropdown in the preview panel. The preview image automatically updates
+  when you change parameters (mass, scale, method).
+- The UI requests generated PNG previews from the `/preview/{filename}`
+  endpoint; no separate "Render" button is required.
 
 Performance and recommendations
 
-- Weak-field mode is fast and suitable for interactive previews.
-- Geodesic mode performs numeric integration for a coarse set of impact
-  parameters (default limited to keep response times reasonable). Use smaller
-  output widths (e.g., 256) for faster previews, and increase resolution or
-  bin count if you need higher fidelity.
-- For longer or heavy renders consider adding an asynchronous job queue or
-  running the renderer in a background worker — I can help add that next.
-- The web preview is intended for local development and testing; it is not hardened for production use.
+- Use Weak-field mode for fast, interactive previews. Use Geodesic mode for
+  higher fidelity at greater computational cost.
+- Reduce the preview width (e.g., 256) to get faster responses from the
+  geodesic renderer during iteration.
+- This preview server is intended for development and testing. For production
+  use add appropriate hardening (reverse proxy, auth, rate limiting,
+  background workers, etc.).
+
+Troubleshooting
+
+- If `uvicorn` is not found, ensure your virtualenv is activated and that
+  dependencies are installed inside it (`source .venv/bin/activate` and
+  `python -m pip install -e .`).
+- Verify the binary and version:
+
+```bash
+which uvicorn
+uvicorn --version
+python -c "import uvicorn; print(uvicorn.__version__)"
+```
+
+- If imports fail when starting the server, install the missing package into
+  the active venv with `python -m pip install <package>`.
+
+If you want, I can add a small section with a one-line development-startup
+script or a tiny systemd unit for running the preview on a server.

@@ -86,7 +86,7 @@ Start the development server with auto-reload (from an activated venv):
 
 ```bash
 # if venv is active
-uvicorn gravity_mirage.web:app
+python -m gravity_mirage.web:app
 
 # or explicitly using the venv binary
 .venv/bin/uvicorn gravity_mirage.web:app

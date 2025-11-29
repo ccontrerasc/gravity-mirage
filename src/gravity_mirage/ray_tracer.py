@@ -107,7 +107,7 @@ class GravitationalRayTracer:
         # triggering at t=0
         threshold = r0 * 0.999
 
-        def escape_event(l, s):
+        def escape_event(lam, s):
             # s is the state vector: [t, r, theta, phi, dt/dλ, dr/dλ, dθ/dλ, dφ/dλ]
             return s[1] - threshold
 
@@ -116,10 +116,10 @@ class GravitationalRayTracer:
         escape_event.direction = 1
 
         solution = solve_ivp(
-            lambda l, s: self.bh.geodesic_equations(s, l),
+            lambda lam, s: self.bh.geodesic_equations(s, lam),
             lambda_span,
             state0,
-            method='RK45',
+            method="RK45",
             rtol=1e-8,
             events=[escape_event],
             dense_output=True,

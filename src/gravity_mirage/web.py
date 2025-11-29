@@ -4,9 +4,10 @@ import io
 import queue as _queue
 import threading
 import uuid
+from importlib.metadata import version
 from os import getenv
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Annotated, Any
 
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
@@ -20,7 +21,6 @@ from fastapi.responses import (
 from jinja2 import DictLoader, Environment, select_autoescape
 from PIL import Image
 
-from importlib.metadata import version
 from gravity_mirage.physics import SchwarzschildBlackHole
 from gravity_mirage.ray_tracer import GravitationalRayTracer
 
@@ -45,7 +45,8 @@ app = FastAPI(
 # and suitable for development. Jobs are stored in `JOBS` and processed by a
 # background worker thread that writes the generated GIF to `exports/`.
 JOB_QUEUE: _queue.Queue = _queue.Queue()
-JOBS: Dict[str, Dict[str, Any]] = {}
+JOBS: dict[str, dict[str, Any]] = {}
+
 
 def _gif_worker() -> None:
     while True:
@@ -72,10 +73,13 @@ def _gif_worker() -> None:
             for i in range(frames):
                 # update a coarse progress indicator
                 JOBS[job_id]["progress"] = int((i / frames) * 100)
-                shift = int(round(i * (out_w / frames)))
+                shift = round(i * (out_w / frames))
                 rolled = np.roll(src_arr0, -shift, axis=1)
                 result_arr = _compute_lensed_array_from_src_arr(
-                    rolled, mass=job.get("mass", 10.0), scale_Rs=job.get("scale", 100.0), method=job.get("method", "weak")
+                    rolled,
+                    mass=job.get("mass", 10.0),
+                    scale_Rs=job.get("scale", 100.0),
+                    method=job.get("method", "weak"),
                 )
                 frames_list.append(Image.fromarray(result_arr))
 
@@ -95,7 +99,7 @@ def _gif_worker() -> None:
             JOBS[job_id]["status"] = "done"
             JOBS[job_id]["result"] = str(out_file.name)
             JOBS[job_id]["progress"] = 100
-        except Exception as exc:
+        except (OSError, ValueError, RuntimeError) as exc:
             JOBS[job_id]["status"] = "error"
             JOBS[job_id]["error"] = str(exc)
         finally:
@@ -662,12 +666,12 @@ template_env = Environment(
 index_template = template_env.get_template("index.html")
 
 
-def list_uploaded_images() -> List[str]:
+def list_uploaded_images() -> list[str]:
     """Return the filenames that currently exist in the upload directory."""
     return sorted([f.name for f in UPLOAD_FOLDER.iterdir() if f.is_file()])
 
 
-def list_exported_images() -> List[str]:
+def list_exported_images() -> list[str]:
     """Return the filenames that currently exist in the exports directory."""
     return sorted([f.name for f in EXPORT_FOLDER.iterdir() if f.is_file()])
 
@@ -830,7 +834,8 @@ def _compute_lensed_array_from_src_arr(
     scale_Rs: float = 100.0,
     method: str = "weak",
 ) -> np.ndarray:
-    """Compute a lensed RGB image array from an already-resized source array.
+    """
+    Compute a lensed RGB image array from an already-resized source array.
 
     src_arr: HxWx3 uint8 RGB array
     returns: HxWx3 uint8 RGB array with lensing applied
@@ -877,7 +882,7 @@ def _compute_lensed_array_from_src_arr(
                     alpha_bins[i] = float(abs(phi_final) - np.pi)
                 else:
                     alpha_bins[i] = 0.0
-            except Exception:
+            except (ValueError, RuntimeError):
                 alpha_bins[i] = 0.0
 
         alpha = np.interp(r.flatten(), radii, alpha_bins).reshape(r.shape)
@@ -902,16 +907,17 @@ def _compute_lensed_array_from_src_arr(
     return result
 
 
-@app.get('/export_gif/{filename}')
+@app.get("/export_gif/{filename}")
 async def export_gif(
     filename: str,
-    mass: float = Query(10.0, gt=0.0),
-    scale: float = Query(100.0, gt=0.0),
-    width: int = Query(PREVIEW_WIDTH, gt=0),
-    method: str = Query('weak'),
-    frames: int = Query(24, ge=2, le=200),
+    mass: Annotated[float, Query(gt=0.0)] = 10.0,
+    scale: Annotated[float, Query(gt=0.0)] = 100.0,
+    width: Annotated[int, Query(gt=0)] = PREVIEW_WIDTH,
+    method: Annotated[str, Query()] = "weak",
+    frames: Annotated[int, Query(ge=2, le=200)] = 24,
 ) -> StreamingResponse:
-    """Generate an animated GIF that scrolls the image right-to-left.
+    """
+    Generate an animated GIF that scrolls the image right-to-left.
 
     The scrolling is implemented by rolling the resized source image horizontally
     across the requested number of frames and applying the lensing renderer
@@ -919,13 +925,13 @@ async def export_gif(
     """
     clean_method = method.lower()
     if clean_method not in ALLOWED_METHODS:
-        raise HTTPException(status_code=400, detail='Unsupported render method')
+        raise HTTPException(status_code=400, detail="Unsupported render method")
 
     path = resolve_uploaded_file(filename)
 
     def _build_gif_bytes():
         with Image.open(path) as src_image:
-            src = src_image.convert('RGB')
+            src = src_image.convert("RGB")
             w0, h0 = src.size
             aspect = h0 / max(w0, 1)
             out_w = max(1, int(width))
@@ -936,10 +942,13 @@ async def export_gif(
         frames_list = []
         # for each frame, roll the image left by a fraction of the width
         for i in range(frames):
-            shift = int(round(i * (out_w / frames)))
+            shift = round(i * (out_w / frames))
             rolled = np.roll(src_arr0, -shift, axis=1)
             result_arr = _compute_lensed_array_from_src_arr(
-                rolled, mass=mass, scale_Rs=scale, method=clean_method
+                rolled,
+                mass=mass,
+                scale_Rs=scale,
+                method=clean_method,
             )
             frames_list.append(Image.fromarray(result_arr))
 
@@ -947,7 +956,7 @@ async def export_gif(
         # Save as animated GIF
         frames_list[0].save(
             bio,
-            format='GIF',
+            format="GIF",
             save_all=True,
             append_images=frames_list[1:],
             loop=0,
@@ -961,25 +970,31 @@ async def export_gif(
     try:
         gif_bytes = await run_in_threadpool(_build_gif_bytes)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail='Image not found') from exc
+        raise HTTPException(status_code=404, detail="Image not found") from exc
 
-    headers = {"Content-Disposition": f'attachment; filename="{Path(filename).stem}-scroll.gif"'}
-    return StreamingResponse(io.BytesIO(gif_bytes), media_type='image/gif', headers=headers)
+    headers = {
+        "Content-Disposition": f'attachment; filename="{Path(filename).stem}-scroll.gif"',
+    }
+    return StreamingResponse(
+        io.BytesIO(gif_bytes),
+        media_type="image/gif",
+        headers=headers,
+    )
 
 
-@app.post('/export_gif_async/{filename}')
+@app.post("/export_gif_async/{filename}")
 async def export_gif_async(
     filename: str,
-    mass: float = Query(10.0, gt=0.0),
-    scale: float = Query(100.0, gt=0.0),
-    width: int = Query(PREVIEW_WIDTH, gt=0),
-    method: str = Query('weak'),
-    frames: int = Query(24, ge=2, le=200),
+    mass: Annotated[float, Query(gt=0.0)] = 10.0,
+    scale: Annotated[float, Query(gt=0.0)] = 100.0,
+    width: Annotated[int, Query(gt=0)] = PREVIEW_WIDTH,
+    method: Annotated[str, Query()] = "weak",
+    frames: Annotated[int, Query(ge=2, le=200)] = 24,
 ) -> dict:
     """Queue a GIF export job and return a job id for polling."""
     clean_method = method.lower()
     if clean_method not in ALLOWED_METHODS:
-        raise HTTPException(status_code=400, detail='Unsupported render method')
+        raise HTTPException(status_code=400, detail="Unsupported render method")
 
     path = resolve_uploaded_file(filename)
 
@@ -999,11 +1014,11 @@ async def export_gif_async(
     return {"job_id": job_id, "status": "queued"}
 
 
-@app.get('/export_gif_status/{job_id}')
+@app.get("/export_gif_status/{job_id}")
 async def export_gif_status(job_id: str) -> dict:
     job = JOBS.get(job_id)
     if job is None:
-        raise HTTPException(status_code=404, detail='Job not found')
+        raise HTTPException(status_code=404, detail="Job not found")
     return {
         "job_id": job_id,
         "status": job.get("status", "unknown"),
@@ -1012,21 +1027,21 @@ async def export_gif_status(job_id: str) -> dict:
     }
 
 
-@app.get('/export_gif_result/{job_id}')
+@app.get("/export_gif_result/{job_id}")
 async def export_gif_result(job_id: str) -> FileResponse:
     job = JOBS.get(job_id)
     if job is None:
-        raise HTTPException(status_code=404, detail='Job not found')
+        raise HTTPException(status_code=404, detail="Job not found")
     if job.get("status") != "done":
-        raise HTTPException(status_code=409, detail='Job not ready')
+        raise HTTPException(status_code=409, detail="Job not ready")
     result_name = job.get("result")
     if not result_name:
-        raise HTTPException(status_code=500, detail='Result missing')
+        raise HTTPException(status_code=500, detail="Result missing")
     result_path = EXPORT_FOLDER / result_name
-    return FileResponse(result_path, media_type='image/gif', filename=result_name)
+    return FileResponse(result_path, media_type="image/gif", filename=result_name)
 
 
-@app.get('/exports_list')
+@app.get("/exports_list")
 async def exports_list() -> dict:
     """Return a JSON listing of files in the exports folder."""
     return {"exports": list_exported_images()}
@@ -1059,7 +1074,7 @@ async def index() -> HTMLResponse:
 
 
 @app.post("/upload")
-async def upload(file: UploadFile = File(...)) -> RedirectResponse:
+async def upload(file: Annotated[UploadFile, File()]) -> RedirectResponse:
     """Persist an uploaded file and redirect back to the UI."""
     if file is None or not file.filename:
         return RedirectResponse("/", status_code=303)
@@ -1086,7 +1101,8 @@ async def uploaded_file(filename: str) -> FileResponse:
 
 @app.get("/img/{filename:path}")
 async def img_file(filename: str) -> FileResponse:
-    """Serve files from the repository's ./img/ directory (for repo assets).
+    """
+    Serve files from the repository's ./img/ directory (for repo assets).
 
     This lets the template reference `/img/nasa-black-hole-visualization.gif`
     without requiring the user to re-upload the asset into uploads/.
@@ -1096,8 +1112,8 @@ async def img_file(filename: str) -> FileResponse:
     target = (img_base / Path(filename).name).resolve()
     try:
         target.relative_to(img_base)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="File not found")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail="File not found") from e
     if not target.exists():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(target)
@@ -1111,15 +1127,15 @@ async def export_file(filename: str) -> FileResponse:
     target = (export_base / Path(filename).name).resolve()
     try:
         target.relative_to(export_base)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="File not found")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail="File not found") from e
     if not target.exists():
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(target, media_type='image/gif')
+    return FileResponse(target, media_type="image/gif")
 
 
 @app.post("/delete")
-async def delete(filename: str = Form(...)) -> RedirectResponse:
+async def delete(filename: Annotated[str, Form()]) -> RedirectResponse:
     """Remove an uploaded asset."""
     try:
         path = resolve_uploaded_file(filename)
@@ -1130,7 +1146,7 @@ async def delete(filename: str = Form(...)) -> RedirectResponse:
 
 
 @app.post("/delete_export")
-async def delete_export(filename: str = Form(...)) -> RedirectResponse:
+async def delete_export(filename: Annotated[str, Form()]) -> RedirectResponse:
     """Remove an exported GIF."""
     try:
         path = resolve_export_file(filename)
@@ -1143,10 +1159,10 @@ async def delete_export(filename: str = Form(...)) -> RedirectResponse:
 @app.get("/preview/{filename}", response_class=StreamingResponse)
 async def preview(
     filename: str,
-    mass: float = Query(10.0, gt=0.0),
-    scale: float = Query(100.0, gt=0.0),
-    width: int = Query(PREVIEW_WIDTH, gt=0),
-    method: str = Query("weak"),
+    mass: Annotated[float, Query(gt=0.0)] = 10.0,
+    scale: Annotated[float, Query(gt=0.0)] = 100.0,
+    width: Annotated[int, Query(gt=0)] = PREVIEW_WIDTH,
+    method: Annotated[str, Query()] = "weak",
 ) -> StreamingResponse:
     """Generate and stream a PNG preview for the requested file."""
     clean_method = method.lower()
@@ -1198,6 +1214,7 @@ def run(
         >>> run()  # Runs on 127.0.0.1:2025
         >>> run(port=8000, host='0.0.0.0')  # Runs on 0.0.0.0:8000
         >>> run(reload=True)  # Runs with auto-reload enabled
+
     """
     env_port = getenv("PORT")
     if env_port and not port:

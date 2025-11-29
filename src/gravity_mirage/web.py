@@ -409,8 +409,8 @@ INDEX_TEMPLATE = """
                     </div>
                     <div>
                         <label for="scaleSlider">Scale (Rs across radius)</label>
-                        <input id="scaleSlider" type="range" min="1" max="20" step="1" value="5" />
-                        <div class="value value-left" id="scaleValue">5</div>
+                        <input id="scaleSlider" type="range" min="2" max="20" step="1" value="5" />
+                        <div class="value value-left" id="scaleValue">1/5</div>
                     </div>
                     <div style="display:flex; gap:10px; width:100%; justify-content:left; align-items:center;">
                         <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
@@ -503,7 +503,15 @@ INDEX_TEMPLATE = """
                     imageSelect.addEventListener('change', updateExportButton);
                 }
                 wireSlider(massSlider, massValue);
-                wireSlider(scaleSlider, scaleValue);
+                // The scale control should display as a fraction "1/<value>".
+                if(scaleSlider && scaleValue){
+                    const syncScale = () => { scaleValue.textContent = '1/' + scaleSlider.value; };
+                    syncScale();
+                    scaleSlider.addEventListener('input', () => {
+                        syncScale();
+                        scheduleRender();
+                    });
+                }
 
                 if(methodSelect){
                     methodSelect.addEventListener('change', () => {

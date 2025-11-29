@@ -1,0 +1,13 @@
+#!include .gitignore
+
+# Editor related
+.vscode/*
+
+# Documentation and such
+LICENSE
+.gitignore
+.prodignore
+
+# Project-related
+exports/
+uploads/

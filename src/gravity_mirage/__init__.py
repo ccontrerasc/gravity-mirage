@@ -1,6 +1,4 @@
-"""
-Gravity Mirage: Simulador de lensing gravitacional
-"""
+"""Gravity Mirage: Simulador de lensing gravitacional."""
 
 from gravity_mirage.physics import SchwarzschildBlackHole
 from gravity_mirage.ray_tracer import GravitationalRayTracer
@@ -9,7 +7,8 @@ from gravity_mirage.web import run as start_api
 
 
 def main() -> None:
-    """Main entry point for the gravity-mirage CLI.
+    """
+    Main entry point for the gravity-mirage CLI.
 
     Parses command-line arguments and starts the web server.
     """
@@ -48,4 +47,4 @@ def main() -> None:
     )
 
 
-__all__ = ["SchwarzschildBlackHole", "GravitationalRayTracer", "main", "web_app"]
+__all__ = ["GravitationalRayTracer", "SchwarzschildBlackHole", "main", "web_app"]

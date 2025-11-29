@@ -63,6 +63,12 @@ To mount the source code for development:
 docker run -p 8080:8080 -v $(pwd):/app gravity-mirage
 ```
 
+> [!IMPORTANT]
+> You may want to add the `reload`
+> [command-line option](#available-command-line-options) to
+> the [Dockerfile](./Dockerfile) to automatically reload the server on
+> code change
+
 ### Local development
 
 #### Setup locally

@@ -230,13 +230,21 @@ exports/*
 *.vsix
 #!include .gitignore
 
-# Editor related
-.vscode/*
+# git and/or Github
+.git
+.github
+
+# Editors
+.vscode/
 
 # Documentation and such
 LICENSE
+!README.md
+
+# Ignore-files
 .gitignore
 .prodignore
+.dockerignore
 
 # Project-related
 exports/

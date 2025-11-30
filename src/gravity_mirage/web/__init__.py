@@ -49,7 +49,7 @@ async def index() -> HTMLResponse:
         background_image_url = f"/api/img/{img_file.name}"
     else:
         bg_file = UPLOAD_FOLDER / "nasa-black-hole-visualization.gif"
-        background_image_url = f"/uploads/{bg_file.name}" if bg_file.exists() else ""
+        background_image_url = f"/api/uploads/{bg_file.name}" if bg_file.exists() else ""
 
     html = index_template.render(
         images=images,

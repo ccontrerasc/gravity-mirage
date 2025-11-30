@@ -266,13 +266,13 @@ INDEX_TEMPLATE = """
                     <ul>
                         {% for image in images %}
                         <li>
-                            <form method="post" action="/delete/upload" onsubmit="return confirm('Delete {{ image }}?');">
+                            <form method="post" action="/api/delete/upload" onsubmit="return confirm('Delete {{ image }}?');">
                                 <input type="hidden" name="filename" value="{{ image }}" />
                                 <button type="submit" aria-label="Delete {{ image }}">✖</button>
                             </form>
                             <button type="button" class="thumb" onclick="setPreview('{{ image }}')">
                                 <strong>{{ image }}</strong>
-                                <img src="/uploads/{{ image }}" alt="{{ image }}" loading="lazy" />
+                                <img src="/api/uploads/{{ image }}" alt="{{ image }}" loading="lazy" />
                             </button>
                         </li>
                         {% else %}
@@ -292,14 +292,14 @@ INDEX_TEMPLATE = """
                     <ul>
                         {% for image in exports %}
                         <li>
-                            <a class="download-btn" href="/exports/{{ image }}" download aria-label="Download {{ image }}" style="position:absolute; top:8px; left:8px; width:24px; height:24px; border-radius:50%; background:#0b4dd8; color:white; display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">↓</a>
-                            <form method="post" action="/delete/export" onsubmit="return confirm('Delete export {{ image }}?');">
+                            <a class="download-btn" href="/api/exports/{{ image }}" download aria-label="Download {{ image }}" style="position:absolute; top:8px; left:8px; width:24px; height:24px; border-radius:50%; background:#0b4dd8; color:white; display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">↓</a>
+                            <form method="post" action="/api/delete/export" onsubmit="return confirm('Delete export {{ image }}?');">
                                 <input type="hidden" name="filename" value="{{ image }}" />
                                 <button type="submit" aria-label="Delete {{ image }}">✖</button>
                             </form>
                             <button type="button" class="thumb" onclick="openExport('{{ image }}')">
                                 <strong>{{ image }}</strong>
-                                <img src="/exports/{{ image }}" alt="{{ image }}" loading="lazy" />
+                                <img src="/api/exports/{{ image }}" alt="{{ image }}" loading="lazy" />
                             </button>
                         </li>
                         {% else %}
@@ -309,7 +309,7 @@ INDEX_TEMPLATE = """
                 </div>
                 <div style="width:100%;"><hr style="border:none; border-top:1px solid rgba(255,255,255,0.06); margin:8px 0 12px 0;" /></div>
                 <div class="uploader" style="margin-top:14px; text-align:center;">
-                    <form method="post" action="/uploads" enctype="multipart/form-data">
+                    <form method="post" action="/api/uploads" enctype="multipart/form-data">
                         <label for="fileInput" class="control-button" style="cursor:pointer;">
                             Choose file
                             <input id="fileInput" name="file" type="file" style="display:none;" />
@@ -392,7 +392,7 @@ INDEX_TEMPLATE = """
                     const mass = massSlider ? (massSlider.value || 10) : 10;
                     const scale = scaleSlider ? (scaleSlider.value || 5) : 5;
                     const method = methodSelect ? methodSelect.value : 'weak';
-                    return `/preview/${encodeURIComponent(name)}?mass=${encodeURIComponent(mass)}&scale=${encodeURIComponent(scale)}&width=${encodeURIComponent(defaultWidth)}&method=${encodeURIComponent(method)}`;
+                    return `/api/preview/${encodeURIComponent(name)}?mass=${encodeURIComponent(mass)}&scale=${encodeURIComponent(scale)}&width=${encodeURIComponent(defaultWidth)}&method=${encodeURIComponent(method)}`;
                 }
 
                 function setPreview(name){
@@ -471,12 +471,12 @@ INDEX_TEMPLATE = """
 
                 function openExport(name){
                     if(!name) return;
-                    window.open(`/exports/${encodeURIComponent(name)}`, '_blank');
+                    window.open(`/api/exports/${encodeURIComponent(name)}`, '_blank');
                 }
 
                 async function refreshExports(){
                     try{
-                        const resp = await fetch('/exports/list');
+                        const resp = await fetch('/api/exports/list');
                         if(!resp.ok) throw new Error('Failed to fetch');
                         const data = await resp.json();
                         const list = data.exports || [];
@@ -488,14 +488,14 @@ INDEX_TEMPLATE = """
                         }
                         const items = list.map(name => `
                             <li>
-                                <a class="download-btn" href="/exports/${name}" download aria-label="Download ${name}" style="position:absolute; top:8px; left:8px; width:24px; height:24px; border-radius:50%; background:#0b4dd8; color:white; display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">↓</a>
-                                <form method="post" action="/delete/export" onsubmit="return confirm('Delete export ${name}?');">
+                                <a class="download-btn" href="/api/exports/${name}" download aria-label="Download ${name}" style="position:absolute; top:8px; left:8px; width:24px; height:24px; border-radius:50%; background:#0b4dd8; color:white; display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">↓</a>
+                                <form method="post" action="/api/delete/export" onsubmit="return confirm('Delete export ${name}?');">
                                     <input type="hidden" name="filename" value="${name}" />
                                     <button type="submit" aria-label="Delete ${name}">✖</button>
                                 </form>
                                 <button type="button" class="thumb" onclick="openExport('${name}')">
                                     <strong>${name}</strong>
-                                    <img src="/exports/${name}" alt="${name}" loading="lazy" />
+                                    <img src="/api/exports/${name}" alt="${name}" loading="lazy" />
                                 </button>
                             </li>
                         `).join('');
@@ -527,7 +527,7 @@ INDEX_TEMPLATE = """
 
                     try{
                         const qs = `?mass=${encodeURIComponent(mass)}&scale=${encodeURIComponent(scale)}&width=${encodeURIComponent(defaultWidth)}&method=${encodeURIComponent(method)}&frames=${encodeURIComponent(frames)}`;
-                        const resp = await fetch(`/exports/gif/async/${encodeURIComponent(name)}${qs}`, { method: 'POST' });
+                        const resp = await fetch(`/api/exports/gif/async/${encodeURIComponent(name)}${qs}`, { method: 'POST' });
                         if(!resp.ok){
                             throw new Error('Queue failed');
                         }
@@ -538,7 +538,7 @@ INDEX_TEMPLATE = """
                         let done = false;
                         while(!done){
                             await new Promise(r => setTimeout(r, 1000));
-                            const st = await fetch(`/exports/gif/status/${encodeURIComponent(jobId)}`);
+                            const st = await fetch(`/api/exports/gif/status/${encodeURIComponent(jobId)}`);
                             if(!st.ok) throw new Error('Status error');
                             const js = await st.json();
                             const status = js.status;

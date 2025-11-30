@@ -6,7 +6,9 @@ from gravity_mirage.web.routers.img import router as img_router
 from gravity_mirage.web.routers.preview import router as preview_router
 from gravity_mirage.web.routers.uploads import router as uploads_router
 
-api_router = APIRouter()
+api_router = APIRouter(
+    prefix="/api",
+)
 
 api_router.include_router(
     img_router,

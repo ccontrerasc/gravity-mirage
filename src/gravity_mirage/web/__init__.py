@@ -42,7 +42,7 @@ async def index() -> HTMLResponse:
     img_dir = Path.cwd() / "img"
     img_file = img_dir / "nasa-black-hole-visualization.gif"
     if img_file.exists():
-        background_image_url = f"/img/{img_file.name}"
+        background_image_url = f"/api/img/{img_file.name}"
     else:
         bg_file = UPLOAD_FOLDER / "nasa-black-hole-visualization.gif"
         background_image_url = f"/uploads/{bg_file.name}" if bg_file.exists() else ""

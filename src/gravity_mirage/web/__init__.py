@@ -23,6 +23,7 @@ from PIL import Image
 
 from gravity_mirage.physics import SchwarzschildBlackHole
 from gravity_mirage.ray_tracer import GravitationalRayTracer
+from gravity_mirage.utils.files import resolve_export_file, resolve_uploaded_file
 from gravity_mirage.web.constants import (
     ALLOWED_EXTENSIONS,
     ALLOWED_METHODS,
@@ -702,34 +703,6 @@ def allocate_export_path(extension: str = ".gif") -> Path:
             if suffix.isdigit():
                 max_index = max(max_index, int(suffix))
     return EXPORT_FOLDER / f"image{max_index + 1}{extension}"
-
-
-def resolve_uploaded_file(filename: str) -> Path:
-    """Ensure the requested filename lives inside the uploads folder."""
-    clean_name = Path(filename).name
-    target = (UPLOAD_FOLDER / clean_name).resolve()
-    base = UPLOAD_FOLDER.resolve()
-    try:
-        target.relative_to(base)
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail="File not found") from exc
-    if not target.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-    return target
-
-
-def resolve_export_file(filename: str) -> Path:
-    """Ensure the requested filename lives inside the exports folder."""
-    clean_name = Path(filename).name
-    target = (EXPORT_FOLDER / clean_name).resolve()
-    base = EXPORT_FOLDER.resolve()
-    try:
-        target.relative_to(base)
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail="File not found") from exc
-    if not target.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-    return target
 
 
 def render_lensing_image(

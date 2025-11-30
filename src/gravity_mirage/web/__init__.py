@@ -9,28 +9,20 @@ from pathlib import Path
 from typing import Annotated
 
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile, status
+from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import (
-    FileResponse,
-    HTMLResponse,
-    RedirectResponse,
-    StreamingResponse,
-)
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from jinja2 import DictLoader, Environment, select_autoescape
 from PIL import Image
 
 from gravity_mirage.core.lensing import compute_lensed_array_from_src_arr
 from gravity_mirage.utils.files import (
-    allocate_image_path,
     list_exported_images,
     list_uploaded_images,
     resolve_uploaded_file,
-    sanitize_extension,
 )
 from gravity_mirage.web.constants import (
     ALLOWED_METHODS,
-    CHUNK_SIZE,
     EXPORT_FOLDER,
     INDEX_TEMPLATE,
     PREVIEW_WIDTH,
@@ -243,37 +235,6 @@ async def index() -> HTMLResponse:
     )
     return HTMLResponse(html)
 
-
-@app.post("/upload")
-async def upload(file: Annotated[UploadFile, File()]) -> RedirectResponse:
-    """Persist an uploaded file and redirect back to the UI."""
-    if file is None or not file.filename:
-        return RedirectResponse(
-            "/",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
-
-    ext = sanitize_extension(Path(file.filename).suffix)
-    dest = allocate_image_path(ext)
-
-    with dest.open("wb") as buffer:
-        while True:
-            chunk = await file.read(CHUNK_SIZE)
-            if not chunk:
-                break
-            buffer.write(chunk)
-    await file.close()
-    return RedirectResponse(
-        "/",
-        status_code=status.HTTP_303_SEE_OTHER,
-    )
-
-
-@app.get("/uploads/{filename:path}")
-async def uploaded_file(filename: str) -> FileResponse:
-    """Serve original uploaded assets."""
-    path = resolve_uploaded_file(filename)
-    return FileResponse(path)
 
 
 @app.get("/img/{filename:path}")

@@ -309,7 +309,7 @@ INDEX_TEMPLATE = """
                 </div>
                 <div style="width:100%;"><hr style="border:none; border-top:1px solid rgba(255,255,255,0.06); margin:8px 0 12px 0;" /></div>
                 <div class="uploader" style="margin-top:14px; text-align:center;">
-                    <form method="post" action="/upload" enctype="multipart/form-data">
+                    <form method="post" action="/uploads" enctype="multipart/form-data">
                         <label for="fileInput" class="control-button" style="cursor:pointer;">
                             Choose file
                             <input id="fileInput" name="file" type="file" style="display:none;" />

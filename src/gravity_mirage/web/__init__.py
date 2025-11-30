@@ -23,18 +23,14 @@ from PIL import Image
 
 from gravity_mirage.physics import SchwarzschildBlackHole
 from gravity_mirage.ray_tracer import GravitationalRayTracer
-
-# Directory used to persist uploaded assets.
-UPLOAD_FOLDER = Path.cwd() / "uploads"
-UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-# Directory for exported GIFs
-EXPORT_FOLDER = Path.cwd() / "exports"
-EXPORT_FOLDER.mkdir(parents=True, exist_ok=True)
-
-ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".webp"}
-ALLOWED_METHODS = {"weak", "geodesic"}
-PREVIEW_WIDTH = 512
-CHUNK_SIZE = 1 << 20  # 1 MiB chunks while streaming uploads to disk.
+from gravity_mirage.web.constants import (
+    ALLOWED_EXTENSIONS,
+    ALLOWED_METHODS,
+    CHUNK_SIZE,
+    EXPORT_FOLDER,
+    PREVIEW_WIDTH,
+    UPLOAD_FOLDER,
+)
 
 app = FastAPI(
     title="Gravity Mirage Web",

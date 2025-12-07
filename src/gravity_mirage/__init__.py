@@ -1,29 +1,50 @@
-import numpy as np
-"""
-Gravity Mirage: Simulador de lensing gravitacional
-"""
-from .physics import SchwarzschildBlackHole
-from .ray_tracer import GravitationalRayTracer
+"""Gravity Mirage: Simulador de lensing gravitacional."""
+
+from gravity_mirage.core.physics import SchwarzschildBlackHole
+from gravity_mirage.core.ray_tracer import GravitationalRayTracer
+from gravity_mirage.web import app as web_app
+from gravity_mirage.web import run as start_api
+
 
 def main() -> None:
-    """Función principal del simulador"""
-    print(" Gravity Mirage - Simulador de Agujero Negro")
-    print("=" * 50)
-    
-    # Crear un agujero negro de 10 masas solares
-    bh = SchwarzschildBlackHole(mass=10)
-    print(f"Radio de Schwarzschild: {bh.schwarzschild_radius:.2f} m")
-    print(f"                       : {bh.schwarzschild_radius/1000:.2f} km")
-    
-    # Crear ray tracer
-    tracer = GravitationalRayTracer(bh)
-    
-    # Ejemplo simple de deflexión
-    impact_param = 100 * bh.schwarzschild_radius
-    angle = bh.deflection_angle_weak_field(impact_param)
-    print(f"\nÁngulo de deflexión a {impact_param/bh.schwarzschild_radius:.1f} Rs:")
-    print(f"  {np.degrees(angle):.6f} grados")
-    print(f"  {angle * 3600:.3f} arcosegundos")
-    
+    """
+    Main entry point for the gravity-mirage CLI.
 
-__all__ = ['SchwarzschildBlackHole', 'GravitationalRayTracer', 'main']
+    Parses command-line arguments and starts the web server.
+    """
+    import argparse  # noqa: PLC0415
+
+    parser = argparse.ArgumentParser(
+        "gravity-mirage",
+        description="Gravity Mirage: Gravitational lensing simulator",
+    )
+
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Host to run the web server on (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help="Port to run the web server on (default: 2025 or PORT env var)",
+    )
+
+    parser.add_argument(
+        "--reload",
+        action="store_true",
+        help="Enable auto-reload for the web server",
+    )
+
+    args = parser.parse_args()
+
+    return start_api(
+        port=args.port,
+        host=args.host,
+        reload=args.reload,
+    )
+
+
+__all__ = ["GravitationalRayTracer", "SchwarzschildBlackHole", "main", "web_app"]
